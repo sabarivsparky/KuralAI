@@ -37,4 +37,12 @@ const askGeminiJSON = async ({ prompt, imagePath, mimeType }) => {
   throw lastError;
 };
 
-module.exports = { askGeminiJSON };
+/**
+ * Convenience helper to analyze complaint text via the Listener Agent.
+ */
+const analyzeComplaint = async (text, options = {}) => {
+  const { runListenerAgent } = require("../agents/listener");
+  return runListenerAgent({ text, ...options });
+};
+
+module.exports = { askGeminiJSON, analyzeComplaint };

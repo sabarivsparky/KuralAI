@@ -24,8 +24,14 @@ export function AuthProvider({ children }) {
     return () => { cancelled = true; };
   }, []);
 
-  const login = useCallback(async (email, password) => {
-    const data = await authAPI.login({ email, password });
+  const login = useCallback(async (emailOrPayload, password, departmentCode, requiredRole) => {
+    let payload;
+    if (typeof emailOrPayload === "object" && emailOrPayload !== null) {
+      payload = emailOrPayload;
+    } else {
+      payload = { email: emailOrPayload, password, departmentCode, requiredRole };
+    }
+    const data = await authAPI.login(payload);
     setUser(data.user);
     return data.user;
   }, []);
@@ -47,6 +53,17 @@ export function AuthProvider({ children }) {
     return data.user;
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const data = await authAPI.me();
+      setUser(data.user);
+      return data.user;
+    } catch {
+      setUser(null);
+      return null;
+    }
+  }, []);
+
   const value = {
     user,
     loading,
@@ -55,6 +72,7 @@ export function AuthProvider({ children }) {
     signup,
     logout,
     updateProfile,
+    refreshUser,
   };
 
   return (

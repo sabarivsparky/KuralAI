@@ -71,16 +71,16 @@ export default function DashboardPage() {
       <div className="welcome-card">
         <div>
           <h2 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.25rem" }}>
-            Welcome back, {user?.displayName || "Citizen"}!
+            {t("dashboard.welcomeBack", "Welcome back")}, {user?.displayName || "Citizen"}!
           </h2>
           <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.75)" }}>
-            Track, submit, and monitor civic complaint resolutions in real time.
+            {t("dashboard.welcomeSubtitle", "Track, submit, and monitor civic complaint resolutions in real time.")}
           </p>
         </div>
 
         <Link to="/complaints/new" className="btn btn-accent btn-lg">
           <PlusCircle style={{ width: 18, height: 18 }} />
-          <span>File a Complaint</span>
+          <span>{t("dashboard.fileComplaintBtn", "File a Complaint")}</span>
         </Link>
       </div>
 
@@ -156,27 +156,27 @@ export default function DashboardPage() {
           <div className="empty-state-box">
             <Sparkles style={{ width: 40, height: 40, color: "var(--accent-teal)", margin: "0 auto 1rem auto" }} />
             <h4 style={{ fontSize: "1.125rem", fontWeight: 700, marginBottom: "0.25rem" }}>
-              No Complaints Filed Yet
+              {t("dashboard.noComplaintsTitle", "No Complaints Filed Yet")}
             </h4>
             <p style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)", maxWidth: "420px", margin: "0.5rem auto 1.5rem auto" }}>
-              Have a civic problem like potholes, water leaks, or streetlights in your area? Report it easily using voice, text, or photo.
+              {t("dashboard.noComplaintsDesc", "Have a civic problem like potholes, water leaks, or streetlights in your area? Report it easily using voice, text, or photo.")}
             </p>
             <Link to="/complaints/new" className="btn btn-accent">
               <PlusCircle style={{ width: 16, height: 16 }} />
-              <span>File Your First Complaint</span>
+              <span>{t("dashboard.fileFirstBtn", "File Your First Complaint")}</span>
             </Link>
           </div>
         ) : (
           <div className="table-wrapper">
-            <table className="data-table">
+            <table className="data-table" aria-label="Recent Complaints Table">
               <thead>
                 <tr>
-                  <th>Tracking ID & Issue</th>
-                  <th>Category</th>
-                  <th>Severity</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th>Action</th>
+                  <th scope="col">{t("dashboard.tableTrackingIssue", "Tracking ID & Issue")}</th>
+                  <th scope="col">{t("dashboard.tableCategory", "Category")}</th>
+                  <th scope="col">{t("dashboard.tableSeverity", "Severity")}</th>
+                  <th scope="col">{t("dashboard.tableStatus", "Status")}</th>
+                  <th scope="col">{t("dashboard.tableDate", "Date")}</th>
+                  <th scope="col">{t("dashboard.tableAction", "Action")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -204,7 +204,7 @@ export default function DashboardPage() {
                     </td>
                     <td>
                       <Link to={`/complaints/${item._id}`} className="btn btn-outline btn-sm">
-                        View Details
+                        {t("dashboard.viewDetails", "View Details")}
                       </Link>
                     </td>
                   </tr>

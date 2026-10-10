@@ -1,26 +1,69 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const multer = require("multer");
+const path = require("path");
 const Complaint = require("../models/Complaint");
 const AuditLog = require("../models/AuditLog");
 const { runListenerAgent } = require("../agents/listener");
 const { requireAuth, optionalAuth } = require("../middleware/auth");
 
 const router = express.Router();
-const upload = multer({ dest: "uploads/" });
+
+// --- Multer configuration with file size and type restrictions ---
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+const upload = multer({
+  dest: "uploads/",
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (req, file, cb) => {
+    if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only JPEG, PNG, WebP, and GIF images are allowed."));
+    }
+  },
+});
+
+// --- Complaint text length limits ---
+const MAX_TEXT_LENGTH = 5000;
+const VALID_LANGUAGES = ["en", "ta", "hi"];
 
 // POST / — submit a complaint (authenticated users get their complaint linked)
 router.post("/", optionalAuth, upload.single("photo"), async (req, res) => {
   try {
     const { text = "", language = "en", lat, lng } = req.body;
 
+    // Validate text length
+    if (typeof text !== "string" || text.length > MAX_TEXT_LENGTH) {
+      return res.status(400).json({ message: `Complaint text must be under ${MAX_TEXT_LENGTH} characters.` });
+    }
+
     if (!text.trim() && !req.file) {
       return res.status(400).json({ message: "Send text or a photo" });
     }
 
+    // Validate language
+    const safeLang = VALID_LANGUAGES.includes(language) ? language : "en";
+
+    // Validate GeoJSON coordinates if provided
+    let geoData = undefined;
+    if (lat !== undefined && lng !== undefined) {
+      const numLat = Number(lat);
+      const numLng = Number(lng);
+      if (
+        !Number.isFinite(numLat) || !Number.isFinite(numLng) ||
+        numLat < -90 || numLat > 90 ||
+        numLng < -180 || numLng > 180
+      ) {
+        return res.status(400).json({ message: "Invalid GPS coordinates." });
+      }
+      geoData = { type: "Point", coordinates: [numLng, numLat] };
+    }
+
     const result = await runListenerAgent({
-      text,
-      language,
+      text: text.trim(),
+      language: safeLang,
       imagePath: req.file?.path,
       mimeType: req.file?.mimetype,
     });
@@ -28,14 +71,13 @@ router.post("/", optionalAuth, upload.single("photo"), async (req, res) => {
     const complaint = await Complaint.create({
       userId: req.user?._id || null,
       text,
-      language,
+      language: safeLang,
       photoUrl: req.file ? `/uploads/${req.file.filename}` : null,
       status: "Submitted",
+      department: result.departmentId || null,
       aiAnalysis: result.analysis,
       analyzedAt: new Date(),
-      ...(lat && lng && {
-        geo: { type: "Point", coordinates: [Number(lng), Number(lat)] },
-      }),
+      ...(geoData && { geo: geoData }),
     });
 
     await AuditLog.create({
@@ -47,12 +89,19 @@ router.post("/", optionalAuth, upload.single("photo"), async (req, res) => {
 
     res.status(201).json({ complaint, listener: result });
   } catch (error) {
+    // Handle Multer file-size/type errors
+    if (error.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ message: "Uploaded file is too large. Maximum 5 MB." });
+    }
+    if (error.message && error.message.includes("images are allowed")) {
+      return res.status(400).json({ message: error.message });
+    }
     console.error("Error processing complaint:", error);
-    res.status(500).json({ message: "Failed to process complaint", error: error.message });
+    res.status(500).json({ message: "Failed to process complaint" });
   }
 });
 
-// GET / — list complaints for the authenticated user (or all if query parameter public=true)
+// GET / — list complaints for the authenticated user
 router.get("/", requireAuth, async (req, res) => {
   try {
     const items = await Complaint.find({ userId: req.user._id })
@@ -95,6 +144,7 @@ router.get("/track/:id", async (req, res) => {
     if (!rawId || !mongoose.Types.ObjectId.isValid(rawId)) {
       return res.status(404).json({ message: "Invalid Complaint ID format. Please check your 24-character tracking ID." });
     }
+    // Public tracking: exclude userId (private) from response
     const complaint = await Complaint.findById(rawId).select("-userId");
     if (!complaint) {
       return res.status(404).json({ message: "No complaint record found with this ID." });
@@ -107,7 +157,7 @@ router.get("/track/:id", async (req, res) => {
   }
 });
 
-// GET /:id — single complaint detail (scoped to user, or fallback by ID if matching)
+// GET /:id — single complaint detail (scoped to authenticated user only)
 router.get("/:id", optionalAuth, async (req, res) => {
   try {
     const rawId = (req.params.id || "").trim();
@@ -115,19 +165,20 @@ router.get("/:id", optionalAuth, async (req, res) => {
       return res.status(404).json({ message: "Invalid Complaint ID format." });
     }
 
-    let complaint;
     if (req.user) {
-      complaint = await Complaint.findOne({
+      // Authenticated: only return complaints owned by this user
+      const complaint = await Complaint.findOne({
         _id: rawId,
         userId: req.user._id,
       });
+      if (!complaint) {
+        return res.status(404).json({ message: "Complaint not found" });
+      }
+      return res.json(complaint);
     }
 
-    // Fallback search if not found by userId (e.g. tracking by ID)
-    if (!complaint) {
-      complaint = await Complaint.findById(rawId);
-    }
-
+    // Unauthenticated: return public view without userId
+    const complaint = await Complaint.findById(rawId).select("-userId");
     if (!complaint) {
       return res.status(404).json({ message: "Complaint not found" });
     }

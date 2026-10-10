@@ -1,5 +1,10 @@
 const mongoose = require("mongoose");
 
+const LEGACY_STATUS_MAP = {
+  analyzed: "Submitted",
+  received: "Submitted",
+};
+
 const complaintSchema = new mongoose.Schema(
   {
     userId: {
@@ -13,11 +18,37 @@ const complaintSchema = new mongoose.Schema(
     photoUrl: { type: String, default: null },
     status: {
       type: String,
-      enum: ["Submitted", "In Review", "In Progress", "Resolved", "Escalated", "Rejected", "analyzed", "received"],
+      enum: [
+        "Submitted",
+        "In Review",
+        "In Progress",
+        "Resolved",
+        "Escalated",
+        "Rejected",
+        // Kept for backward compatibility with existing DB records
+        "analyzed",
+        "received",
+      ],
       default: "Submitted",
+      set: (val) => {
+        if (!val) return "Submitted";
+        if (typeof val === "string") {
+          const lower = val.toLowerCase();
+          if (LEGACY_STATUS_MAP[lower]) return LEGACY_STATUS_MAP[lower];
+        }
+        return val;
+      },
       index: true,
     },
     source: { type: String, default: "citizen" },
+
+    // Department assignment (resolved ObjectId for reliable queue filtering)
+    department: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      default: null,
+      index: true,
+    },
 
     // [longitude, latitude], used for nearby search
     geo: {
@@ -40,6 +71,29 @@ const complaintSchema = new mongoose.Schema(
       issue: { type: String, default: null },
     },
     analyzedAt: { type: Date, default: Date.now },
+
+    // Officer assignment
+    assignedOfficer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    // Internal officer notes (not visible to citizen)
+    officerNotes: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        text: { type: String, required: true, maxlength: 2000 },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    // Resolution/rejection note (visible to citizen)
+    resolutionNote: {
+      type: String,
+      default: null,
+      maxlength: 2000,
+    },
   },
   { timestamps: true }
 );

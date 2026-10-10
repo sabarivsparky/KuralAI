@@ -14,6 +14,11 @@ import ComplaintsPage from "./pages/ComplaintsPage";
 import ComplaintDetailPage from "./pages/ComplaintDetailPage";
 import TrackingPage from "./pages/TrackingPage";
 import AccountPage from "./pages/AccountPage";
+import OfficerPortalPage from "./pages/OfficerPortalPage";
+import AdminPortalPage from "./pages/AdminPortalPage";
+import AdminLoginPage from "./pages/AdminLoginPage";
+import DepartmentSelectionPage from "./pages/DepartmentSelectionPage";
+import DepartmentLoginPage from "./pages/DepartmentLoginPage";
 
 function App() {
   return (
@@ -24,6 +29,9 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/departments" element={<DepartmentSelectionPage />} />
+          <Route path="/departments/:code/login" element={<DepartmentLoginPage />} />
 
           {/* Unified application shell layout routes */}
           <Route element={<AppLayout />}>
@@ -43,6 +51,18 @@ function App() {
 
               <Route path="/complaints/:id" element={<ComplaintDetailPage />} />
               <Route path="/account" element={<AccountPage />} />
+            </Route>
+
+            {/* Department Officer Portal Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["official", "admin"]} />}>
+              <Route path="/officer/*" element={<OfficerPortalPage />} />
+              <Route path="/portals/officer" element={<OfficerPortalPage />} />
+            </Route>
+
+            {/* Admin Portal Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+              <Route path="/admin/*" element={<AdminPortalPage />} />
+              <Route path="/portals/admin" element={<AdminPortalPage />} />
             </Route>
           </Route>
 

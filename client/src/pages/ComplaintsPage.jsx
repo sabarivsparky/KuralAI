@@ -76,7 +76,7 @@ export default function ComplaintsPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" style={{ marginBottom: "1.5rem" }}>
         <div>
           <h2 className="page-title">
-            My Complaints Directory
+            {t("nav.myComplaints", "My Complaints Directory")}
           </h2>
           <p className="page-subtitle">
             View status updates, department assignments, and resolution audit trails for all filed grievances.
@@ -85,7 +85,7 @@ export default function ComplaintsPage() {
 
         <Link to="/complaints/new" className="btn btn-accent">
           <PlusCircle style={{ width: 16, height: 16 }} />
-          <span>File New Complaint</span>
+          <span>{t("dashboard.fileNew", "File New Complaint")}</span>
         </Link>
       </div>
 
@@ -100,6 +100,7 @@ export default function ComplaintsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="form-input"
+              aria-label="Search complaints"
             />
           </div>
 
@@ -110,6 +111,7 @@ export default function ComplaintsPage() {
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="form-input form-select"
+                aria-label="Filter by status"
               >
                 <option value="ALL">All Statuses</option>
                 <option value="Submitted">Submitted</option>
@@ -127,6 +129,7 @@ export default function ComplaintsPage() {
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
                   className="form-input form-select"
+                  aria-label="Filter by category"
                 >
                   <option value="ALL">All Categories</option>
                   {categories.map((cat) => (
@@ -165,7 +168,7 @@ export default function ComplaintsPage() {
           </p>
           <Link to="/complaints/new" className="btn btn-accent btn-sm">
             <PlusCircle style={{ width: 14, height: 14 }} />
-            <span>File New Complaint</span>
+            <span>{t("dashboard.fileNew", "File New Complaint")}</span>
           </Link>
         </div>
       ) : (

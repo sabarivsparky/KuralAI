@@ -10,9 +10,14 @@ import {
   User,
   LogOut,
   Shield,
-  Sparkles,
-  ChevronRight,
+  Briefcase,
+  SlidersHorizontal,
   X,
+  BarChart3,
+  Users,
+  Building2,
+  ScrollText,
+  ClipboardList,
 } from "lucide-react";
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -25,7 +30,10 @@ export default function Sidebar({ isOpen, onClose }) {
     navigate("/login");
   };
 
-  const navItems = [
+  const role = user?.role || "citizen";
+
+  // --- Citizen navigation items ---
+  const citizenNavItems = [
     {
       to: "/dashboard",
       icon: LayoutDashboard,
@@ -53,8 +61,103 @@ export default function Sidebar({ isOpen, onClose }) {
     },
   ];
 
+  // --- Officer navigation items ---
+  const officerNavItems = [
+    {
+      to: "/officer/dashboard",
+      icon: Briefcase,
+      label: t("nav.officerDashboard", "Department Queue"),
+    },
+    {
+      to: "/officer/complaints",
+      icon: ClipboardList,
+      label: t("nav.officerComplaints", "Assigned Complaints"),
+    },
+    {
+      to: "/officer/stats",
+      icon: BarChart3,
+      label: t("nav.officerStats", "Dept Statistics"),
+    },
+    {
+      to: "/track",
+      icon: Search,
+      label: t("nav.track", "Track Complaints"),
+    },
+    {
+      to: "/account",
+      icon: User,
+      label: t("nav.account", "Account Center"),
+    },
+  ];
+
+  // --- Admin navigation items ---
+  const adminNavItems = [
+    {
+      to: "/admin/dashboard",
+      icon: SlidersHorizontal,
+      label: t("nav.adminDashboard", "Admin Dashboard"),
+    },
+    {
+      to: "/admin/complaints",
+      icon: ClipboardList,
+      label: t("nav.adminComplaints", "All Complaints"),
+    },
+    {
+      to: "/admin/users",
+      icon: Users,
+      label: t("nav.adminUsers", "User Management"),
+    },
+    {
+      to: "/admin/departments",
+      icon: Building2,
+      label: t("nav.adminDepts", "Departments"),
+    },
+    {
+      to: "/admin/audit-logs",
+      icon: ScrollText,
+      label: t("nav.adminAudit", "Audit Trail"),
+    },
+    {
+      to: "/track",
+      icon: Search,
+      label: t("nav.track", "Track Complaints"),
+    },
+    {
+      to: "/account",
+      icon: User,
+      label: t("nav.account", "Account Center"),
+    },
+  ];
+
+  // Select nav items based on role
+  let activeNavItems = citizenNavItems;
+  let portalLabel = "Citizen Portal";
+  if (role === "official") {
+    activeNavItems = officerNavItems;
+    portalLabel = "Officer Portal";
+  } else if (role === "admin") {
+    activeNavItems = adminNavItems;
+    portalLabel = "Admin Portal";
+  }
+
+  // Role badge color
+  const roleBadgeColor = {
+    citizen: "rgba(255, 255, 255, 0.15)",
+    official: "rgba(36, 124, 120, 0.35)",
+    admin: "rgba(220, 60, 60, 0.25)",
+  };
+
+  const roleDisplayName = {
+    citizen: "Citizen",
+    official: "Officer",
+    admin: "Admin",
+  };
+
   return (
-    <aside className={`app-sidebar ${isOpen ? "sidebar-mobile-open" : ""}`}>
+    <aside
+      className={`app-sidebar ${isOpen ? "sidebar-mobile-open" : ""}`}
+      aria-label="Sidebar Navigation"
+    >
       <div>
         <div className="sidebar-header">
           <div className="flex items-center gap-3">
@@ -75,14 +178,40 @@ export default function Sidebar({ isOpen, onClose }) {
           </button>
         </div>
 
-        <nav className="sidebar-nav-list">
-          {navItems.map((item) => {
+        {/* Main Navigation */}
+        <nav className="sidebar-nav-list" aria-label={`${portalLabel} routes`}>
+          <div style={{
+            padding: "0 0.75rem 0.5rem 0.75rem",
+            fontSize: "0.6875rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            color: "rgba(255, 255, 255, 0.45)",
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}>
+            <span>{portalLabel}</span>
+            {user && (
+              <span style={{
+                fontSize: "0.5625rem",
+                background: roleBadgeColor[role] || roleBadgeColor.citizen,
+                padding: "1px 6px",
+                borderRadius: "4px",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}>
+                {roleDisplayName[role] || role}
+              </span>
+            )}
+          </div>
+          {activeNavItems.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === "/dashboard"}
+                end={item.to.endsWith("/dashboard")}
                 onClick={onClose}
                 className={({ isActive }) =>
                   `sidebar-link ${isActive ? "active" : ""}`

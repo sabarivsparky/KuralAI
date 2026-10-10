@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
-import { User, Mail, Globe, Phone, MapPin, Save, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { User, Mail, Globe, Phone, MapPin, Save, CheckCircle2, AlertCircle, Loader2, Shield } from "lucide-react";
 
 export default function AccountPage() {
   const { t, i18n } = useTranslation();
@@ -49,12 +49,19 @@ export default function AccountPage() {
 
   return (
     <div className="account-page-container">
-      <div className="page-header-row" style={{ marginBottom: "1.5rem" }}>
+      <div className="page-header-row flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" style={{ marginBottom: "1.5rem" }}>
         <div>
-          <h2 className="page-title">{t("nav.account", "My Account")}</h2>
+          <h2 className="page-title">{t("account.pageTitle", "My Account")}</h2>
           <p className="page-subtitle">
-            Manage your personal details, language preferences, and contact information.
+            {t("account.pageSubtitle", "Manage your personal details, language preferences, and contact information.")}
           </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="category-pill flex items-center gap-1.5" style={{ background: "var(--color-teal-bg)", color: "var(--accent-teal)", fontWeight: 700, textTransform: "capitalize" }}>
+            <Shield style={{ width: 14, height: 14 }} />
+            <span>Role: {user?.role || "Citizen"}</span>
+          </span>
         </div>
       </div>
 
@@ -62,7 +69,7 @@ export default function AccountPage() {
         {success && (
           <div className="alert alert-success" style={{ marginBottom: "1.5rem" }}>
             <CheckCircle2 style={{ width: 20, height: 20 }} />
-            <span>Profile details updated successfully!</span>
+            <span>{t("account.successMsg", "Profile details updated successfully!")}</span>
           </div>
         )}
 
@@ -75,7 +82,7 @@ export default function AccountPage() {
 
         <form onSubmit={handleSubmit} className="account-form">
           <div className="form-group">
-            <label className="form-label">Email Address (Read Only)</label>
+            <label className="form-label">{t("account.emailLabel", "Email Address (Read Only)")}</label>
             <div className="input-with-icon">
               <Mail className="input-icon" style={{ width: 18, height: 18 }} />
               <input
@@ -89,7 +96,7 @@ export default function AccountPage() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">{t("auth.fullName", "Full Name")}</label>
+            <label className="form-label">{t("account.fullNameLabel", "Full Name")}</label>
             <div className="input-with-icon">
               <User className="input-icon" style={{ width: 18, height: 18 }} />
               <input
@@ -103,7 +110,7 @@ export default function AccountPage() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">{t("auth.preferredLanguage", "Preferred Interface Language")}</label>
+            <label className="form-label">{t("account.prefLangLabel", "Preferred Interface Language")}</label>
             <div className="input-with-icon">
               <Globe className="input-icon" style={{ width: 18, height: 18 }} />
               <select
@@ -119,7 +126,7 @@ export default function AccountPage() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">{t("auth.phone", "Phone Number")}</label>
+            <label className="form-label">{t("account.phoneLabel", "Phone Number")}</label>
             <div className="input-with-icon">
               <Phone className="input-icon" style={{ width: 18, height: 18 }} />
               <input
@@ -133,7 +140,7 @@ export default function AccountPage() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">{t("auth.address", "Address / Locality")}</label>
+            <label className="form-label">{t("account.addressLabel", "Address / Locality")}</label>
             <div className="input-with-icon">
               <MapPin className="input-icon" style={{ width: 18, height: 18 }} />
               <input
@@ -155,12 +162,12 @@ export default function AccountPage() {
             {saving ? (
               <>
                 <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" />
-                <span>Saving changes...</span>
+                <span>{t("account.savingBtn", "Saving...")}</span>
               </>
             ) : (
               <>
                 <Save style={{ width: 16, height: 16 }} />
-                <span>Save Profile Changes</span>
+                <span>{t("account.saveBtn", "Save Profile Changes")}</span>
               </>
             )}
           </button>

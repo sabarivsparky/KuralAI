@@ -27,7 +27,10 @@ export default function LoginPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const from = location.state?.from?.pathname || "/dashboard";
+  const requestedFrom =
+    typeof location.state?.from === "string"
+      ? location.state.from
+      : location.state?.from?.pathname || null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,8 +44,16 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate(from, { replace: true });
+      const loggedUser = await login(email, password);
+      let destination = "/dashboard";
+      if (requestedFrom && requestedFrom !== "/login" && requestedFrom !== "/dashboard") {
+        destination = requestedFrom;
+      } else if (loggedUser?.role === "admin") {
+        destination = "/admin/dashboard";
+      } else if (loggedUser?.role === "official") {
+        destination = "/officer/dashboard";
+      }
+      navigate(destination, { replace: true });
     } catch (err) {
       console.error("Login error:", err);
       const msg =
@@ -155,10 +166,21 @@ export default function LoginPage() {
             </form>
 
             <div className="auth-card-footer" style={{ marginTop: "1.25rem", textAlign: "center", fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
-              <span>{t("auth.noAccount", "Don't have an account?")} </span>
-              <Link to="/signup" className="auth-link">
-                {t("nav.signup", "Register here")}
-              </Link>
+              <div>
+                <span>{t("auth.noAccount", "Don't have an account?")} </span>
+                <Link to="/signup" className="auth-link">
+                  {t("nav.signup", "Register here")}
+                </Link>
+              </div>
+              <div style={{ marginTop: "0.875rem", paddingTop: "0.875rem", borderTop: "1px solid var(--border-primary)", display: "flex", justifyContent: "center", gap: "1rem", fontSize: "0.8125rem", flexWrap: "wrap" }}>
+                <Link to="/departments" className="auth-link" style={{ color: "var(--color-teal)" }}>
+                  {t("auth.departmentPortalLink", "Department Staff Login")}
+                </Link>
+                <span style={{ color: "var(--color-text-tertiary)" }}>•</span>
+                <Link to="/admin/login" className="auth-link" style={{ color: "var(--color-teal)" }}>
+                  {t("auth.adminPortalLink", "Admin Portal")}
+                </Link>
+              </div>
             </div>
           </div>
         </div>

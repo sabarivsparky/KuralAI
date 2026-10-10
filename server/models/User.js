@@ -31,6 +31,15 @@ const userSchema = new mongoose.Schema(
       enum: ["citizen", "official", "admin"],
       default: "citizen",
     },
+    department: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      default: null,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
     preferredLanguage: {
       type: String,
       enum: ["en", "ta", "hi"],

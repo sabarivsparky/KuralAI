@@ -55,8 +55,11 @@ export const authAPI = {
     apiFetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(typeof body === "object" ? body : { email: arguments[0], password: arguments[1] }),
     }),
+
+  getDepartments: () =>
+    apiFetch("/api/auth/departments"),
 
   logout: () =>
     apiFetch("/api/auth/logout", { method: "POST" }),
@@ -67,6 +70,13 @@ export const authAPI = {
   updateProfile: (body) =>
     apiFetch("/api/auth/profile", {
       method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+
+  selectDemoDepartment: (body) =>
+    apiFetch("/api/auth/demo/select-department", {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }),
@@ -143,6 +153,95 @@ export const voiceAPI = {
   },
 };
 
+// ---- Officer Portal ----
+
+export const officerAPI = {
+  getComplaints: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/api/officer/complaints${query ? `?${query}` : ""}`);
+  },
+
+  getComplaint: (id) =>
+    apiFetch(`/api/officer/complaints/${id}`),
+
+  updateStatus: (id, { status, note }) =>
+    apiFetch(`/api/officer/complaints/${id}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, note }),
+    }),
+
+  addNote: (id, text) =>
+    apiFetch(`/api/officer/complaints/${id}/note`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    }),
+
+  getStats: () =>
+    apiFetch("/api/officer/stats"),
+};
+
+// ---- Admin Portal ----
+
+export const adminAPI = {
+  getStats: () =>
+    apiFetch("/api/admin/stats"),
+
+  getComplaints: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/api/admin/complaints${query ? `?${query}` : ""}`);
+  },
+
+  updateComplaintStatus: (id, { status, note }) =>
+    apiFetch(`/api/admin/complaints/${id}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, note }),
+    }),
+
+  getUsers: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/api/admin/users${query ? `?${query}` : ""}`);
+  },
+
+  updateUserRole: (id, { role, departmentId }) =>
+    apiFetch(`/api/admin/users/${id}/role`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role, departmentId }),
+    }),
+
+  updateUserStatus: (id, isActive) =>
+    apiFetch(`/api/admin/users/${id}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive }),
+    }),
+
+  getDepartments: () =>
+    apiFetch("/api/admin/departments"),
+
+  createDepartment: (body) =>
+    apiFetch("/api/admin/departments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+
+  updateDepartment: (id, body) =>
+    apiFetch(`/api/admin/departments/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+
+  getAuditLogs: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/api/admin/audit-logs${query ? `?${query}` : ""}`);
+  },
+};
+
 // ---- Legacy exports for backward compatibility ----
 
 export const submitComplaint = ({ text, language, photo }) =>
@@ -150,3 +249,4 @@ export const submitComplaint = ({ text, language, photo }) =>
 
 export const transcribeVoice = ({ audio, language }) =>
   voiceAPI.transcribe({ audio, language });
+

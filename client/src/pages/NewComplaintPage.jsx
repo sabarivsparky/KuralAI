@@ -9,18 +9,15 @@ import {
   Camera,
   Upload,
   X,
-  RefreshCw,
-  Play,
-  Square,
   CheckCircle2,
   AlertCircle,
   Loader2,
   MapPin,
   Globe,
-  ArrowRight,
   Shield,
-  FileText,
   Sparkles,
+  Square,
+  Clock,
 } from "lucide-react";
 
 export default function NewComplaintPage() {
@@ -43,8 +40,9 @@ export default function NewComplaintPage() {
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
 
-  // Voice State
+  // Voice State & Timer
   const [isRecording, setIsRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
 
@@ -56,10 +54,16 @@ export default function NewComplaintPage() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const fileInputRef = useRef(null);
+  const timerIntervalRef = useRef(null);
 
   useEffect(() => {
     setMode(getModeFromPath());
   }, [location.pathname]);
+
+  // Keep internal language synced if i18n language changes
+  useEffect(() => {
+    if (i18n.language) setLanguage(i18n.language);
+  }, [i18n.language]);
 
   const changeMode = (newMode) => {
     setMode(newMode);
@@ -102,6 +106,7 @@ export default function NewComplaintPage() {
     setError(null);
     setAudioUrl(null);
     audioChunksRef.current = [];
+    setRecordSeconds(0);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -114,6 +119,7 @@ export default function NewComplaintPage() {
       recorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop());
         setIsRecording(false);
+        clearInterval(timerIntervalRef.current);
 
         if (audioChunksRef.current.length === 0) return;
 
@@ -138,6 +144,17 @@ export default function NewComplaintPage() {
       mediaRecorderRef.current = recorder;
       recorder.start();
       setIsRecording(true);
+
+      // Start 1-second interval counter up to 25 seconds
+      timerIntervalRef.current = setInterval(() => {
+        setRecordSeconds((prev) => {
+          if (prev >= 24) {
+            stopRecording();
+            return 25;
+          }
+          return prev + 1;
+        });
+      }, 1000);
     } catch (err) {
       console.error("Microphone access denied:", err);
       setError("Microphone access denied or unsupported. Please allow microphone access or type your issue instead.");
@@ -197,16 +214,16 @@ export default function NewComplaintPage() {
           </div>
 
           <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-navy)", marginBottom: "0.5rem" }}>
-            Complaint Submitted Successfully!
+            {t("complaint.successTitle", "Complaint Submitted Successfully!")}
           </h2>
 
           <p style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)", marginBottom: "1.5rem" }}>
-            Your complaint has been registered and assigned for AI department routing and review.
+            {t("complaint.successSubtitle", "Your complaint has been registered and assigned for AI department routing and review.")}
           </p>
 
           <div style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-xl)", padding: "1.25rem", marginBottom: "1.5rem" }}>
             <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)", fontWeight: 600 }}>
-              Tracking Reference ID
+              {t("complaint.trackingRefId", "Tracking Reference ID")}
             </div>
             <div style={{ fontSize: "1.25rem", fontWeight: 700, fontFamily: "monospace", color: "var(--color-navy)", marginTop: "0.25rem" }}>
               #{submittedComplaint._id}
@@ -216,7 +233,7 @@ export default function NewComplaintPage() {
           {submittedComplaint.aiAnalysis && (
             <div style={{ textAlign: "left", background: "var(--color-teal-bg)", border: "1px solid rgba(36, 124, 120, 0.3)", borderRadius: "var(--radius-lg)", padding: "1rem", marginBottom: "1.5rem", fontSize: "0.8125rem", color: "var(--color-text-primary)" }}>
               <div style={{ fontWeight: 700, marginBottom: "0.25rem", color: "var(--accent-teal)" }}>
-                AI Initial Analysis Response:
+                {t("complaint.aiResponseTitle", "AI Initial Analysis Response:")}
               </div>
               <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>
                 {submittedComplaint.aiAnalysis.citizenReply || "Your complaint has been queued for review by the appropriate department."}
@@ -226,10 +243,10 @@ export default function NewComplaintPage() {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <Link to={`/complaints/${submittedComplaint._id}`} className="btn btn-accent flex-1">
-              View Status Details
+              {t("complaint.viewStatusBtn", "View Status Details")}
             </Link>
             <Link to="/dashboard" className="btn btn-outline flex-1">
-              Back to Dashboard
+              {t("complaint.backDashboardBtn", "Back to Dashboard")}
             </Link>
           </div>
         </div>
@@ -243,13 +260,13 @@ export default function NewComplaintPage() {
       <div style={{ marginBottom: "2rem" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.25rem 0.75rem", borderRadius: "9999px", background: "var(--color-teal-bg)", color: "var(--accent-teal)", fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.5rem" }}>
           <Sparkles style={{ width: 14, height: 14 }} />
-          <span>Multilingual AI Intake Engine Active</span>
+          <span>{t("complaint.intakeActive", "Multilingual AI Intake Engine Active")}</span>
         </div>
         <h2 className="page-title">
-          File a Civic Complaint
+          {t("complaint.pageTitle", "File a Civic Complaint")}
         </h2>
         <p className="page-subtitle">
-          Choose your preferred reporting method below to describe the issue in Tamil, English, or Hindi.
+          {t("complaint.pageSubtitle", "Choose your preferred reporting method below to describe the issue in Tamil, English, or Hindi.")}
         </p>
       </div>
 
@@ -259,17 +276,21 @@ export default function NewComplaintPage() {
         <div
           onClick={() => changeMode("text")}
           className={`choice-card ${mode === "text" ? "active" : ""}`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && changeMode("text")}
+          aria-label={t("complaint.choiceTextTitle", "1. Type an Issue")}
         >
           <div className="choice-icon">
             <Type style={{ width: 28, height: 28 }} />
           </div>
-          <h3 className="choice-title">1. Type an Issue</h3>
+          <h3 className="choice-title">{t("complaint.choiceTextTitle", "1. Type an Issue")}</h3>
           <p className="choice-desc">
-            Describe the civic problem using text. Add optional landmark and photo evidence.
+            {t("complaint.choiceTextDesc", "Describe the civic problem using text. Add optional landmark and photo evidence.")}
           </p>
 
           <span className={`btn btn-sm ${mode === "text" ? "btn-accent" : "btn-outline"}`}>
-            Select Text Intake
+            {t("complaint.choiceTextBtn", "Select Text Intake")}
           </span>
         </div>
 
@@ -277,17 +298,21 @@ export default function NewComplaintPage() {
         <div
           onClick={() => changeMode("voice")}
           className={`choice-card ${mode === "voice" ? "active" : ""}`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && changeMode("voice")}
+          aria-label={t("complaint.choiceVoiceTitle", "2. Record Voice")}
         >
           <div className="choice-icon" style={{ background: "rgba(217, 119, 6, 0.12)", color: "#B45309" }}>
             <Mic style={{ width: 28, height: 28 }} />
           </div>
-          <h3 className="choice-title">2. Record Voice</h3>
+          <h3 className="choice-title">{t("complaint.choiceVoiceTitle", "2. Record Voice")}</h3>
           <p className="choice-desc">
-            Speak into your microphone in Tamil, Hindi, or English. AI automatically transcribes your words.
+            {t("complaint.choiceVoiceDesc", "Speak into your microphone in Tamil, Hindi, or English. AI automatically transcribes your words.")}
           </p>
 
           <span className={`btn btn-sm ${mode === "voice" ? "btn-accent" : "btn-outline"}`}>
-            Select Voice Intake
+            {t("complaint.choiceVoiceBtn", "Select Voice Intake")}
           </span>
         </div>
 
@@ -295,17 +320,21 @@ export default function NewComplaintPage() {
         <div
           onClick={() => changeMode("photo")}
           className={`choice-card ${mode === "photo" ? "active" : ""}`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && changeMode("photo")}
+          aria-label={t("complaint.choicePhotoTitle", "3. Upload a Photo")}
         >
           <div className="choice-icon" style={{ background: "rgba(5, 150, 105, 0.12)", color: "#047857" }}>
             <Camera style={{ width: 28, height: 28 }} />
           </div>
-          <h3 className="choice-title">3. Upload a Photo</h3>
+          <h3 className="choice-title">{t("complaint.choicePhotoTitle", "3. Upload a Photo")}</h3>
           <p className="choice-desc">
-            Upload photo evidence of potholes, water leaks, or garbage. Gemini Vision analyzes image details.
+            {t("complaint.choicePhotoDesc", "Upload photo evidence of potholes, water leaks, or garbage. Gemini Vision analyzes image details.")}
           </p>
 
           <span className={`btn btn-sm ${mode === "photo" ? "btn-accent" : "btn-outline"}`}>
-            Select Photo Intake
+            {t("complaint.choicePhotoBtn", "Select Photo Intake")}
           </span>
         </div>
       </div>
@@ -324,7 +353,7 @@ export default function NewComplaintPage() {
           {/* PHOTO WORKFLOW SPECIFIC PANEL */}
           {mode === "photo" && (
             <div className="form-group">
-              <label className="form-label">Upload Complaint Evidence Photo *</label>
+              <label className="form-label">{t("complaint.photoUploadLabel", "Upload Complaint Evidence Photo *")}</label>
 
               {photoPreview ? (
                 <div className="image-preview-box">
@@ -336,7 +365,7 @@ export default function NewComplaintPage() {
                       className="btn btn-sm btn-outline-light"
                       style={{ background: "rgba(11, 25, 48, 0.8)", border: "none" }}
                     >
-                      Replace
+                      {t("complaint.replacePhoto", "Replace")}
                     </button>
                     <button
                       type="button"
@@ -344,7 +373,7 @@ export default function NewComplaintPage() {
                       className="btn btn-sm btn-danger"
                     >
                       <X style={{ width: 14, height: 14 }} />
-                      Remove
+                      {t("complaint.removePhoto", "Remove")}
                     </button>
                   </div>
                 </div>
@@ -352,20 +381,23 @@ export default function NewComplaintPage() {
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   className="photo-upload-dropzone"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && fileInputRef.current?.click()}
                 >
                   <Upload style={{ width: 36, height: 36, color: "var(--accent-teal)", margin: "0 auto 0.75rem auto" }} />
                   <h4 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--color-navy)" }}>
-                    Click or Drag Photo Here to Upload
+                    {t("complaint.photoDropzoneTitle", "Click or Drag Photo Here to Upload")}
                   </h4>
                   <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>
-                    Supported formats: JPEG, PNG, WebP (Max 5 MB)
+                    {t("complaint.photoDropzoneFormats", "Supported formats: JPEG, PNG, WebP (Max 5 MB)")}
                   </p>
                   <button
                     type="button"
                     className="btn btn-accent btn-sm"
                     style={{ marginTop: "1rem" }}
                   >
-                    Select Photo File
+                    {t("complaint.selectPhotoBtn", "Select Photo File")}
                   </button>
                 </div>
               )}
@@ -383,16 +415,20 @@ export default function NewComplaintPage() {
           {/* VOICE WORKFLOW SPECIFIC PANEL */}
           {mode === "voice" && (
             <div className="form-group">
-              <label className="form-label">Voice Recording Intake *</label>
+              <label className="form-label">{t("complaint.voiceRecordingLabel", "Voice Recording Intake *")}</label>
               <div style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-xl)", padding: "1.5rem", textAlign: "center" }}>
                 {isRecording ? (
                   <div>
                     <div style={{ width: 16, height: 16, borderRadius: "50%", background: "var(--color-danger)", margin: "0 auto 0.75rem auto" }} className="animate-pulse" />
                     <h4 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--color-danger)" }}>
-                      Recording Audio... Speak clearly into your mic
+                      {t("complaint.recordingStateTitle", "Recording Audio... Speak clearly into your mic")}
                     </h4>
-                    <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>
-                      Tap Stop when finished speaking.
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginTop: "0.5rem", padding: "4px 12px", background: "rgba(180, 35, 50, 0.1)", borderRadius: "9999px", color: "var(--color-danger)", fontWeight: 700, fontSize: "0.875rem" }}>
+                      <Clock style={{ width: 14, height: 14 }} />
+                      <span>{recordSeconds}s / 25s</span>
+                    </div>
+                    <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginTop: "0.5rem" }}>
+                      {t("complaint.recordingStateDesc", "Tap Stop when finished speaking.")}
                     </p>
                     <button
                       type="button"
@@ -401,24 +437,24 @@ export default function NewComplaintPage() {
                       style={{ marginTop: "1rem" }}
                     >
                       <Square style={{ width: 16, height: 16 }} />
-                      Stop Recording
+                      {t("complaint.stopRecordingBtn", "Stop Recording")}
                     </button>
                   </div>
                 ) : isTranscribing ? (
                   <div>
                     <Loader2 style={{ width: 32, height: 32, color: "var(--accent-teal)", margin: "0 auto 0.5rem auto" }} className="animate-spin" />
                     <h4 style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--color-navy)" }}>
-                      Converting voice audio into text via AI...
+                      {t("complaint.transcribingState", "Converting voice audio into text via AI...")}
                     </h4>
                   </div>
                 ) : (
                   <div>
                     <Mic style={{ width: 36, height: 36, color: "var(--accent-teal)", margin: "0 auto 0.75rem auto" }} />
                     <h4 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--color-navy)" }}>
-                      {audioUrl ? "Audio Recorded" : "Tap Microphone to Start Voice Recording"}
+                      {audioUrl ? "Audio Recorded" : t("complaint.startRecordTitle", "Tap Microphone to Start Voice Recording")}
                     </h4>
                     <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>
-                      Speak in Tamil, Hindi, or English.
+                      {t("complaint.startRecordDesc", "Speak in Tamil, Hindi, or English (Max 25s).")}
                     </p>
 
                     {audioUrl && (
@@ -434,7 +470,7 @@ export default function NewComplaintPage() {
                       style={{ marginTop: "0.75rem" }}
                     >
                       <Mic style={{ width: 16, height: 16 }} />
-                      <span>{audioUrl ? "Re-record Voice" : "Start Microphone Recording"}</span>
+                      <span>{audioUrl ? t("complaint.reRecordBtn", "Re-record Voice") : t("complaint.startRecordBtn", "Start Microphone Recording")}</span>
                     </button>
                   </div>
                 )}
@@ -446,10 +482,10 @@ export default function NewComplaintPage() {
           <div className="form-group">
             <label className="form-label">
               {mode === "voice"
-                ? "Review / Edit Transcribed Speech Text *"
+                ? t("complaint.descVoiceLabel", "Review / Edit Transcribed Speech Text *")
                 : mode === "photo"
-                ? "Grievance Description (Optional with Photo)"
-                : "Complaint Details & Description *"}
+                ? t("complaint.descPhotoLabel", "Grievance Description (Optional with Photo)")
+                : t("complaint.descTextLabel", "Complaint Details & Description *")}
             </label>
             <textarea
               rows={4}
@@ -458,7 +494,7 @@ export default function NewComplaintPage() {
               placeholder={
                 mode === "voice"
                   ? "Transcribed text will appear here automatically. You can edit or add extra details."
-                  : "Describe the civic issue clearly (e.g. Broken water pipe leaking near Ward 12 bus stop)..."
+                  : t("complaint.descPlaceholder", "Describe the civic issue clearly (e.g. Broken water pipe leaking near Ward 12 bus stop)...")
               }
               className="form-input"
               style={{ padding: "0.75rem 1rem", minHeight: "110px", resize: "vertical" }}
@@ -468,12 +504,15 @@ export default function NewComplaintPage() {
           {/* Form Row: Language & Landmark */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
             <div className="form-group">
-              <label className="form-label">Language Used</label>
+              <label className="form-label">{t("complaint.languageUsedLabel", "Language Used")}</label>
               <div className="input-with-icon">
                 <Globe className="input-icon" style={{ width: 16, height: 16 }} />
                 <select
                   value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
+                  onChange={(e) => {
+                    setLanguage(e.target.value);
+                    i18n.changeLanguage(e.target.value);
+                  }}
                   className="form-input form-select"
                 >
                   <option value="en">English</option>
@@ -484,14 +523,14 @@ export default function NewComplaintPage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Location / Landmark (Optional)</label>
+              <label className="form-label">{t("complaint.locationLandmarkLabel", "Location / Landmark (Optional)")}</label>
               <div className="input-with-icon">
                 <MapPin className="input-icon" style={{ width: 16, height: 16 }} />
                 <input
                   type="text"
                   value={landmark}
                   onChange={(e) => setLandmark(e.target.value)}
-                  placeholder="e.g. Near Main Market, Ward 5"
+                  placeholder={t("complaint.locationLandmarkPlaceholder", "e.g. Near Main Market, Ward 5")}
                   className="form-input"
                 />
               </div>
@@ -501,7 +540,7 @@ export default function NewComplaintPage() {
           {/* OPTIONAL PHOTO INPUT FOR TEXT/VOICE MODE */}
           {mode !== "photo" && !photoPreview && (
             <div className="form-group">
-              <label className="form-label">Attach Photo Evidence (Optional)</label>
+              <label className="form-label">{t("complaint.attachPhotoOptional", "Attach Photo Evidence (Optional)")}</label>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -509,7 +548,7 @@ export default function NewComplaintPage() {
                 style={{ width: "fit-content" }}
               >
                 <Camera style={{ width: 16, height: 16 }} />
-                <span>Choose Photo File</span>
+                <span>{t("complaint.choosePhotoFileBtn", "Choose Photo File")}</span>
               </button>
               <input
                 ref={fileInputRef}
@@ -531,12 +570,12 @@ export default function NewComplaintPage() {
               {submitting ? (
                 <>
                   <Loader2 style={{ width: 18, height: 18 }} className="animate-spin" />
-                  <span>Submitting Complaint & Generating AI Routing...</span>
+                  <span>{t("complaint.submittingBtn", "Submitting Complaint & Generating AI Routing...")}</span>
                 </>
               ) : (
                 <>
                   <Shield style={{ width: 18, height: 18 }} />
-                  <span>Review & Submit Complaint</span>
+                  <span>{t("complaint.submitBtn", "Review & Submit Complaint")}</span>
                 </>
               )}
             </button>
